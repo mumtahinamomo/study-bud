@@ -25,48 +25,15 @@ import {
 import { MaterialNotesPanel } from "@/components/MaterialNotesPanel";
 import type { Material, ChatMessage } from "@/types";
 
-// Mock data
-const mockMaterials: Material[] = [
-  {
-    id: "1",
-    classId: "1",
-    name: "Week 1 - Introduction.pdf",
-    type: "slides",
-    uploadedAt: new Date(),
-    size: 2500000,
-  },
-  {
-    id: "2",
-    classId: "1",
-    name: "Chapter 1 Notes.docx",
-    type: "notes",
-    uploadedAt: new Date(),
-    size: 150000,
-  },
-  {
-    id: "3",
-    classId: "1",
-    name: "Research Paper - Memory.pdf",
-    type: "readings",
-    uploadedAt: new Date(),
-    size: 800000,
-  },
-  {
-    id: "4",
-    classId: "1",
-    name: "Lecture Recording - Week 1.mp4",
-    type: "videos",
-    uploadedAt: new Date(),
-    size: 150000000,
-  },
-];
+// Start with empty materials - user will add manually
+const mockMaterials: Material[] = [];
 
 const initialMessages: ChatMessage[] = [
   {
     id: "1",
     classId: "1",
     role: "assistant",
-    content: "Hi! I'm your study buddy for Introduction to Psychology. I've analyzed all your course materials. What would you like to learn about today?",
+    content: "Hi! I'm your study buddy. Upload your course materials and I'll help you understand them. What would you like to learn about today?",
     timestamp: new Date(),
   },
 ];

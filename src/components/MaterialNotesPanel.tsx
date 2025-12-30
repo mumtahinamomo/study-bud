@@ -22,78 +22,8 @@ interface MaterialNotesPanelProps {
   onClose: () => void;
 }
 
-// Mock notes data - in real app this would be stored in database
-const mockNotes: Record<string, string> = {
-  "1": `# Week 1 - Introduction to Psychology
-
-## Key Concepts
-
-### What is Psychology?
-- The scientific study of behavior and mental processes
-- Seeks to understand individuals and groups
-- Originated from philosophy and biology
-
-### Major Perspectives
-1. **Biological** - Focus on genetics, brain, and nervous system
-2. **Behavioral** - Observable behaviors and learning
-3. **Cognitive** - Mental processes like thinking and memory
-4. **Psychodynamic** - Unconscious motivations
-
-## Important Terms
-- **Hypothesis**: A testable prediction
-- **Variable**: A factor that can change
-- **Correlation**: A relationship between variables
-
-## Study Tips
-- Review these slides before next lecture
-- Connect concepts to real-life examples`,
-  "2": `# Chapter 1 Notes - Psychology Foundations
-
-## Main Topics Covered
-
-### History of Psychology
-- Wilhelm Wundt - Father of psychology (1879)
-- Structuralism vs Functionalism debate
-- Rise of modern perspectives
-
-### Research Methods
-- Experimental method
-- Case studies
-- Surveys and questionnaires
-
-## Key Takeaways
-- Psychology is a science that uses empirical methods
-- Multiple perspectives help explain behavior`,
-  "3": `# Research Paper - Memory
-
-## Summary
-This paper explores how memory formation and retrieval works in the human brain.
-
-## Key Findings
-- Memory is not a single process but involves encoding, storage, and retrieval
-- Short-term memory has limited capacity (7±2 items)
-- Sleep plays a crucial role in memory consolidation
-
-## Important Concepts
-- **Encoding**: Converting information into memory
-- **Consolidation**: Stabilizing memories over time
-- **Retrieval**: Accessing stored information`,
-  "4": `# Lecture Recording - Week 1
-
-## Topics Discussed
-- Introduction to course structure
-- Overview of psychology as a discipline
-- First look at research methods
-
-## Key Points from Lecture
-- Professor emphasized importance of critical thinking
-- Discussed real-world applications
-- Preview of upcoming topics
-
-## Action Items
-- Read Chapter 1 before next class
-- Complete online quiz by Friday`,
-};
+// Notes storage - starts empty, user generates via AI
+const mockNotes: Record<string, string> = {};
 
 export const MaterialNotesPanel = ({ material, onClose }: MaterialNotesPanelProps) => {
   const [notes, setNotes] = useState("");
