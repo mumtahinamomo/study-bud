@@ -13,10 +13,29 @@ import {
   Settings,
   LogOut,
   Search,
-  Sparkles
+  Sparkles,
+  Trash2,
+  MoreVertical
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CreateClassDialog } from "@/components/CreateClassDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import type { ClassFolder } from "@/types";
 
 // Mock data
@@ -57,6 +76,8 @@ const Dashboard = () => {
   const [classes, setClasses] = useState<ClassFolder[]>(mockClasses);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<ClassFolder | null>(null);
   const navigate = useNavigate();
 
   const filteredClasses = classes.filter(
@@ -86,6 +107,22 @@ const Dashboard = () => {
     };
     setClasses([classFolder, ...classes]);
     setIsCreateOpen(false);
+  };
+
+  const handleDeleteClass = (cls: ClassFolder, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setClassToDelete(cls);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (classToDelete) {
+      setClasses(classes.filter(c => c.id !== classToDelete.id));
+      toast.success(`"${classToDelete.name}" has been deleted`);
+      setClassToDelete(null);
+      setDeleteDialogOpen(false);
+    }
   };
 
   return (
@@ -200,7 +237,30 @@ const Dashboard = () => {
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
                   <Link to={`/class/${cls.id}`}>
-                    <Card variant="interactive" className="p-5 group">
+                    <Card variant="interactive" className="p-5 group relative">
+                      <div className="absolute top-3 right-3 z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon-sm" 
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <MoreVertical size={14} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => handleDeleteClass(cls, e as unknown as React.MouseEvent)}
+                            >
+                              <Trash2 size={14} className="mr-2" />
+                              Delete Class
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       <div className="flex items-start justify-between mb-4">
                         <div 
                           className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
@@ -208,7 +268,7 @@ const Dashboard = () => {
                         >
                           {cls.icon}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mr-8">
                           <Clock size={12} />
                           {formatLastStudied(cls.lastStudied)}
                         </div>
@@ -241,6 +301,23 @@ const Dashboard = () => {
         onOpenChange={setIsCreateOpen}
         onCreate={handleCreateClass}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Class</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{classToDelete?.name}"? This will remove all materials and study history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

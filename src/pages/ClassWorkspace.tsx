@@ -14,16 +14,15 @@ import {
   Presentation,
   Video,
   BookOpen,
-  MoreHorizontal,
   Sparkles,
   Lightbulb,
   GraduationCap,
   Headphones,
   PanelLeftClose,
   PanelLeft,
-  Plus,
-  Trash2,
+  StickyNote,
 } from "lucide-react";
+import { MaterialNotesPanel } from "@/components/MaterialNotesPanel";
 import type { Material, ChatMessage } from "@/types";
 
 // Mock data
@@ -86,6 +85,7 @@ const ClassWorkspace = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [materials, setMaterials] = useState<Material[]>(mockMaterials);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -264,7 +264,10 @@ const ClassWorkspace = () => {
                     {materials.map((material) => (
                       <div
                         key={material.id}
-                        className="group flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer transition-colors"
+                        onClick={() => setSelectedMaterial(material)}
+                        className={`group flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer transition-colors ${
+                          selectedMaterial?.id === material.id ? "bg-sidebar-accent" : ""
+                        }`}
                       >
                         {getFileIcon(material.type)}
                         <div className="flex-1 min-w-0">
@@ -277,8 +280,12 @@ const ClassWorkspace = () => {
                           variant="ghost"
                           size="icon-sm"
                           className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMaterial(material);
+                          }}
                         >
-                          <MoreHorizontal size={14} />
+                          <StickyNote size={14} />
                         </Button>
                       </div>
                     ))}
@@ -415,6 +422,16 @@ const ClassWorkspace = () => {
             </div>
           </div>
         </div>
+
+        {/* Material Notes Panel */}
+        <AnimatePresence>
+          {selectedMaterial && (
+            <MaterialNotesPanel
+              material={selectedMaterial}
+              onClose={() => setSelectedMaterial(null)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
