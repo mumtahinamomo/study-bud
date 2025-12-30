@@ -14,7 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      classes: {
+        Row: {
+          code: string | null
+          color: string | null
+          created_at: string
+          emoji: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      materials: {
+        Row: {
+          class_id: string
+          file_path: string
+          id: string
+          name: string
+          size: number | null
+          type: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          file_path: string
+          id?: string
+          name: string
+          size?: number | null
+          type?: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          file_path?: string
+          id?: string
+          name?: string
+          size?: number | null
+          type?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

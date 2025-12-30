@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,22 +21,29 @@ import {
   PanelLeftClose,
   PanelLeft,
   StickyNote,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { MaterialNotesPanel } from "@/components/MaterialNotesPanel";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Material, ChatMessage } from "@/types";
 
-// Start with empty materials - user will add manually
-const mockMaterials: Material[] = [];
+interface DbMaterial {
+  id: string;
+  class_id: string;
+  name: string;
+  type: string;
+  file_path: string;
+  size: number | null;
+  uploaded_at: string;
+}
 
-const initialMessages: ChatMessage[] = [
-  {
-    id: "1",
-    classId: "1",
-    role: "assistant",
-    content: "Hi! I'm your study buddy. Upload your course materials and I'll help you understand them. What would you like to learn about today?",
-    timestamp: new Date(),
-  },
-];
+interface DbClass {
+  id: string;
+  name: string;
+  code: string | null;
+  emoji: string | null;
+}
 
 const quickActions = [
   { icon: Lightbulb, label: "Explain a concept", prompt: "Explain the concept of " },
@@ -47,12 +54,17 @@ const quickActions = [
 
 const ClassWorkspace = () => {
   const { classId } = useParams();
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [materials, setMaterials] = useState<Material[]>(mockMaterials);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [classInfo, setClassInfo] = useState<DbClass | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +75,69 @@ const ClassWorkspace = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (user && classId) {
+      fetchClassData();
+    }
+  }, [user, classId]);
+
+  const fetchClassData = async () => {
+    try {
+      // Fetch class info
+      const { data: classData, error: classError } = await supabase
+        .from("classes")
+        .select("*")
+        .eq("id", classId)
+        .maybeSingle();
+
+      if (classError) throw classError;
+      if (!classData) {
+        toast.error("Class not found");
+        navigate("/dashboard");
+        return;
+      }
+
+      setClassInfo(classData as DbClass);
+
+      // Fetch materials
+      const { data: materialsData, error: materialsError } = await supabase
+        .from("materials")
+        .select("*")
+        .eq("class_id", classId)
+        .order("uploaded_at", { ascending: false });
+
+      if (materialsError) throw materialsError;
+
+      const mappedMaterials: Material[] = (materialsData as DbMaterial[]).map((m) => ({
+        id: m.id,
+        classId: m.class_id,
+        name: m.name,
+        type: m.type as Material["type"],
+        fileUrl: m.file_path,
+        uploadedAt: new Date(m.uploaded_at),
+        size: m.size || 0,
+      }));
+
+      setMaterials(mappedMaterials);
+
+      // Set initial welcome message
+      setMessages([
+        {
+          id: "1",
+          classId: classId || "1",
+          role: "assistant",
+          content: `Hi! I'm your study buddy for ${classData.name}. Upload your course materials and I'll help you understand them. What would you like to learn about today?`,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch (error) {
+      console.error("Error fetching class data:", error);
+      toast.error("Failed to load class data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -81,7 +156,6 @@ const ClassWorkspace = () => {
     setIsTyping(true);
 
     try {
-      // Build messages array for API (exclude initial welcome message for cleaner context)
       const apiMessages = [...messages.filter(m => m.id !== "1"), userMessage].map(m => ({
         role: m.role,
         content: m.content
@@ -91,7 +165,7 @@ const ClassWorkspace = () => {
         body: {
           messages: apiMessages,
           classContext: {
-            className: "Introduction to Psychology",
+            className: classInfo?.name || "Study Material",
             materials: materials.map(m => m.name)
           }
         }
@@ -115,21 +189,89 @@ const ClassWorkspace = () => {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || !user || !classId) return;
 
-    Array.from(files).forEach((file) => {
-      const newMaterial: Material = {
-        id: Date.now().toString() + Math.random(),
-        classId: classId || "1",
-        name: file.name,
-        type: getFileType(file.name),
-        uploadedAt: new Date(),
-        size: file.size,
-      };
-      setMaterials((prev) => [...prev, newMaterial]);
-    });
+    setUploading(true);
+
+    try {
+      for (const file of Array.from(files)) {
+        // Upload to storage
+        const filePath = `${user.id}/${classId}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("materials")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // Save record to database
+        const { data, error: dbError } = await supabase
+          .from("materials")
+          .insert({
+            class_id: classId,
+            user_id: user.id,
+            name: file.name,
+            type: getFileType(file.name),
+            file_path: filePath,
+            size: file.size,
+          })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+
+        const newMaterial: Material = {
+          id: data.id,
+          classId: data.class_id,
+          name: data.name,
+          type: data.type as Material["type"],
+          fileUrl: data.file_path,
+          uploadedAt: new Date(data.uploaded_at),
+          size: data.size || 0,
+        };
+
+        setMaterials((prev) => [newMaterial, ...prev]);
+      }
+
+      toast.success("Files uploaded successfully!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload files");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDeleteMaterial = async (material: Material, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      // Delete from storage
+      if (material.fileUrl) {
+        await supabase.storage.from("materials").remove([material.fileUrl]);
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from("materials")
+        .delete()
+        .eq("id", material.id);
+
+      if (error) throw error;
+
+      setMaterials((prev) => prev.filter((m) => m.id !== material.id));
+      if (selectedMaterial?.id === material.id) {
+        setSelectedMaterial(null);
+      }
+      toast.success("Material deleted");
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete material");
+    }
   };
 
   const getFileType = (filename: string): Material["type"] => {
@@ -159,6 +301,14 @@ const ClassWorkspace = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
@@ -170,11 +320,13 @@ const ClassWorkspace = () => {
         </Link>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-lg">
-            🧠
+            {classInfo?.emoji || "📚"}
           </div>
           <div>
-            <h1 className="font-semibold text-sm">Introduction to Psychology</h1>
-            <p className="text-xs text-muted-foreground">PSY 101 - Fall 2024</p>
+            <h1 className="font-semibold text-sm">{classInfo?.name || "Class"}</h1>
+            {classInfo?.code && (
+              <p className="text-xs text-muted-foreground">{classInfo.code}</p>
+            )}
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -212,9 +364,14 @@ const ClassWorkspace = () => {
                     size="sm"
                     className="w-full gap-2"
                     onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
                   >
-                    <Upload size={14} />
-                    Upload Files
+                    {uploading ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Upload size={14} />
+                    )}
+                    {uploading ? "Uploading..." : "Upload Files"}
                   </Button>
                   <input
                     ref={fileInputRef}
@@ -228,34 +385,50 @@ const ClassWorkspace = () => {
 
                 <ScrollArea className="flex-1">
                   <div className="p-3 space-y-1">
-                    {materials.map((material) => (
-                      <div
-                        key={material.id}
-                        onClick={() => setSelectedMaterial(material)}
-                        className={`group flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer transition-colors ${
-                          selectedMaterial?.id === material.id ? "bg-sidebar-accent" : ""
-                        }`}
-                      >
-                        {getFileIcon(material.type)}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate">{material.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatFileSize(material.size || 0)}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="opacity-0 group-hover:opacity-100 h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMaterial(material);
-                          }}
+                    {materials.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No materials yet. Upload some files to get started.
+                      </p>
+                    ) : (
+                      materials.map((material) => (
+                        <div
+                          key={material.id}
+                          onClick={() => setSelectedMaterial(material)}
+                          className={`group flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer transition-colors ${
+                            selectedMaterial?.id === material.id ? "bg-sidebar-accent" : ""
+                          }`}
                         >
-                          <StickyNote size={14} />
-                        </Button>
-                      </div>
-                    ))}
+                          {getFileIcon(material.type)}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm truncate">{material.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(material.size || 0)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMaterial(material);
+                              }}
+                            >
+                              <StickyNote size={14} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={(e) => handleDeleteMaterial(material, e)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </ScrollArea>
               </div>
