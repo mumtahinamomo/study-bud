@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import {
   Search,
   Sparkles,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CreateClassDialog } from "@/components/CreateClassDialog";
@@ -36,18 +37,80 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import type { ClassFolder } from "@/types";
 
-// Start with empty classes - user will add manually
-const mockClasses: ClassFolder[] = [];
+interface DbClass {
+  id: string;
+  name: string;
+  code: string | null;
+  emoji: string | null;
+  color: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 const Dashboard = () => {
-  const [classes, setClasses] = useState<ClassFolder[]>(mockClasses);
+  const [classes, setClasses] = useState<ClassFolder[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<ClassFolder | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [materialsCount, setMaterialsCount] = useState<Record<string, number>>({});
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      fetchClasses();
+    }
+  }, [user]);
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch materials count for each class
+      const classIds = (data as DbClass[]).map(c => c.id);
+      if (classIds.length > 0) {
+        const { data: materials, error: matError } = await supabase
+          .from("materials")
+          .select("class_id");
+
+        if (!matError && materials) {
+          const counts: Record<string, number> = {};
+          materials.forEach((m: { class_id: string }) => {
+            counts[m.class_id] = (counts[m.class_id] || 0) + 1;
+          });
+          setMaterialsCount(counts);
+        }
+      }
+
+      const mappedClasses: ClassFolder[] = (data as DbClass[]).map((c) => ({
+        id: c.id,
+        name: c.name,
+        description: c.code || undefined,
+        color: c.color || "hsl(var(--primary))",
+        icon: c.emoji || "📚",
+        materialsCount: 0,
+        createdAt: new Date(c.created_at),
+      }));
+
+      setClasses(mappedClasses);
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+      toast.error("Failed to load classes");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredClasses = classes.filter(
     (cls) =>
@@ -68,14 +131,41 @@ const Dashboard = () => {
     return `${days} days ago`;
   };
 
-  const handleCreateClass = (newClass: Omit<ClassFolder, "id" | "createdAt">) => {
-    const classFolder: ClassFolder = {
-      ...newClass,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    setClasses([classFolder, ...classes]);
-    setIsCreateOpen(false);
+  const handleCreateClass = async (newClass: Omit<ClassFolder, "id" | "createdAt">) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .insert({
+          user_id: user.id,
+          name: newClass.name,
+          code: newClass.description || null,
+          emoji: newClass.icon,
+          color: newClass.color,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const classFolder: ClassFolder = {
+        id: data.id,
+        name: data.name,
+        description: data.code || undefined,
+        color: data.color || "hsl(var(--primary))",
+        icon: data.emoji || "📚",
+        materialsCount: 0,
+        createdAt: new Date(data.created_at),
+      };
+
+      setClasses([classFolder, ...classes]);
+      setIsCreateOpen(false);
+      toast.success("Class created successfully!");
+    } catch (error) {
+      console.error("Error creating class:", error);
+      toast.error("Failed to create class");
+    }
   };
 
   const handleDeleteClass = (cls: ClassFolder, e: React.MouseEvent) => {
@@ -85,14 +175,42 @@ const Dashboard = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (classToDelete) {
+  const confirmDelete = async () => {
+    if (!classToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("classes")
+        .delete()
+        .eq("id", classToDelete.id);
+
+      if (error) throw error;
+
       setClasses(classes.filter(c => c.id !== classToDelete.id));
       toast.success(`"${classToDelete.name}" has been deleted`);
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      toast.error("Failed to delete class");
+    } finally {
       setClassToDelete(null);
       setDeleteDialogOpen(false);
     }
   };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const totalMaterials = Object.values(materialsCount).reduce((a, b) => a + b, 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -117,7 +235,7 @@ const Dashboard = () => {
             <Button 
               variant="ghost" 
               size="icon-sm"
-              onClick={() => navigate("/login")}
+              onClick={handleSignOut}
             >
               <LogOut size={18} />
             </Button>
@@ -156,9 +274,7 @@ const Dashboard = () => {
                 <FileText className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
-                  {classes.reduce((acc, cls) => acc + cls.materialsCount, 0)}
-                </p>
+                <p className="text-2xl font-bold">{totalMaterials}</p>
                 <p className="text-sm text-muted-foreground">Total Materials</p>
               </div>
             </Card>
@@ -167,7 +283,7 @@ const Dashboard = () => {
                 <Sparkles className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold">24</p>
+                <p className="text-2xl font-bold">0</p>
                 <p className="text-sm text-muted-foreground">Study Sessions</p>
               </div>
             </Card>
@@ -254,7 +370,7 @@ const Dashboard = () => {
                       
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <FileText size={14} />
-                        {cls.materialsCount} materials
+                        {materialsCount[cls.id] || 0} materials
                       </div>
                     </Card>
                   </Link>
