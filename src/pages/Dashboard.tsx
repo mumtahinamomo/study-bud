@@ -38,39 +38,8 @@ import {
 import { toast } from "sonner";
 import type { ClassFolder } from "@/types";
 
-// Mock data
-const mockClasses: ClassFolder[] = [
-  {
-    id: "1",
-    name: "Introduction to Psychology",
-    description: "PSY 101 - Fall 2024",
-    color: "hsl(175, 60%, 40%)",
-    icon: "🧠",
-    materialsCount: 12,
-    lastStudied: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    createdAt: new Date(),
-  },
-  {
-    id: "2",
-    name: "Calculus II",
-    description: "MATH 201 - Fall 2024",
-    color: "hsl(38, 92%, 50%)",
-    icon: "📐",
-    materialsCount: 8,
-    lastStudied: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    createdAt: new Date(),
-  },
-  {
-    id: "3",
-    name: "Organic Chemistry",
-    description: "CHEM 301 - Fall 2024",
-    color: "hsl(220, 60%, 50%)",
-    icon: "🧪",
-    materialsCount: 15,
-    lastStudied: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
-    createdAt: new Date(),
-  },
-];
+// Start with empty classes - user will add manually
+const mockClasses: ClassFolder[] = [];
 
 const Dashboard = () => {
   const [classes, setClasses] = useState<ClassFolder[]>(mockClasses);
