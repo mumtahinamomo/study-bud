@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Logo } from "@/components/Logo";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Send,
@@ -109,26 +109,43 @@ const ClassWorkspace = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue("");
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Build messages array for API (exclude initial welcome message for cleaner context)
+      const apiMessages = [...messages.filter(m => m.id !== "1"), userMessage].map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const { data, error } = await supabase.functions.invoke("chat", {
+        body: {
+          messages: apiMessages,
+          classContext: {
+            className: "Introduction to Psychology",
+            materials: materials.map(m => m.name)
+          }
+        }
+      });
+
+      if (error) throw error;
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         classId: classId || "1",
         role: "assistant",
-        content: `Based on your course materials, here's what I found about "${inputValue}":\n\n` +
-          "This is a comprehensive topic covered in your Week 1 slides. The key concepts include:\n\n" +
-          "• **Core Definition**: The fundamental understanding of this concept relates to how we process information.\n\n" +
-          "• **Key Research**: Studies by leading researchers have shown significant findings in this area.\n\n" +
-          "• **Practical Application**: You can apply this knowledge in various real-world scenarios.\n\n" +
-          "Would you like me to explain any of these points in more detail, or create some practice questions?",
+        content: data.response,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast.error("Failed to get response. Please try again.");
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
