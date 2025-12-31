@@ -1,73 +1,87 @@
-# Welcome to your Lovable project
+# 📚 StudyBud
 
-## Project info
+**StudyBud** is an AI-powered study companion for college students that helps organize class materials, generate adaptive notes, and learn more effectively through a chat-first interface.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## What is StudyBud?
 
-**Use Lovable**
+StudyBud allows students to upload **all materials for a class**—lecture slides, notes, readings, textbooks, and recordings—into a single class folder. The AI deeply understands everything inside that folder and acts as a **personal AI tutor**, answering questions, generating notes, quizzes, and even audio summaries **based only on that class’s content**.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+StudyBud is designed for:
+- Understanding concepts (not just summarizing)
+- Studying in short, fragmented time blocks
+- Reducing planning and organization overhead
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+##  Key Features
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Class-Based Knowledge Folders
+- Upload slides, notes, readings, videos, and textbooks per class
+- Each class becomes a self-contained knowledge base
+- The AI only answers using materials from the selected class
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Chat-First AI Tutor
+- Conversational interface
+- Ask questions grounded in your actual course content
+- Request explanations at different levels:
+  - “Explain like I’m five”
+  - “Exam-ready explanation”
+  - “Deep / conceptual explanation”
 
-Follow these steps:
+### AI-Generated Notes
+- Turn messy lecture content into clean, structured notes
+- Notes are fully editable so students can add their own insights
+- Rewrite notes in different styles or difficulty levels
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+### Practice & Self-Testing
+- Auto-generated flashcards and quizzes
+- Learn from mistakes with targeted explanations
+- Weak areas are prioritized for future review
+
+---
+
+## 🔗 Live App
+
+👉 **https://study-folder-chat.lovable.app**
+
+---
+
+## 🛠 How Can I Edit This Project?
+
+You have multiple ways to work on StudyBud:
+
+---
+
+### Option 1: Use Lovable (Recommended)
+
+1. Open the StudyBud project in Lovable
+2. Prompt changes directly in Lovable
+3. All changes are **automatically committed** to this GitHub repository
+
+This is the fastest way to iterate on product behavior and UI.
+
+---
+
+### Option 2: Use Your Own IDE (Local Development)
+
+#### Requirements
+- Node.js (recommended via `nvm`)
+- npm
+
+#### Steps
+
+```bash
+# Step 1: Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Step 2: Navigate to the project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Step 3: Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server
 npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
