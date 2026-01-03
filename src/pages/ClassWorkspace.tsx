@@ -23,9 +23,14 @@ import {
   StickyNote,
   Loader2,
   Trash2,
+  Volume2,
+  VolumeX,
+  Layers,
 } from "lucide-react";
 import { MaterialNotesPanel } from "@/components/MaterialNotesPanel";
+import { FlashcardPanel } from "@/components/FlashcardPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import type { Material, ChatMessage } from "@/types";
 
 interface DbMaterial {
@@ -49,7 +54,6 @@ const quickActions = [
   { icon: Lightbulb, label: "Explain a concept", prompt: "Explain the concept of " },
   { icon: GraduationCap, label: "Quiz me", prompt: "Create a quick quiz on " },
   { icon: FileText, label: "Make notes", prompt: "Create comprehensive notes on " },
-  { icon: Headphones, label: "Audio summary", prompt: "Generate an audio summary of " },
 ];
 
 const ClassWorkspace = () => {
@@ -65,8 +69,29 @@ const ClassWorkspace = () => {
   const [classInfo, setClassInfo] = useState<DbClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [flashcardOpen, setFlashcardOpen] = useState(false);
+  const [flashcardTopic, setFlashcardTopic] = useState("");
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+
+  const handleSpeak = (messageId: string, text: string) => {
+    if (speakingMessageId === messageId && isSpeaking) {
+      stop();
+      setSpeakingMessageId(null);
+    } else {
+      stop();
+      setSpeakingMessageId(messageId);
+      speak(text);
+    }
+  };
+
+  useEffect(() => {
+    if (!isSpeaking) {
+      setSpeakingMessageId(null);
+    }
+  }, [isSpeaking]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -463,6 +488,35 @@ const ClassWorkspace = () => {
                           <Sparkles size={12} className="text-primary" />
                         </div>
                         <span className="text-xs font-medium text-primary">StudyBud</span>
+                        <div className="ml-auto flex items-center gap-1">
+                          {ttsSupported && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="h-6 w-6"
+                              onClick={() => handleSpeak(message.id, message.content)}
+                              title={speakingMessageId === message.id && isSpeaking ? "Stop reading" : "Read aloud"}
+                            >
+                              {speakingMessageId === message.id && isSpeaking ? (
+                                <VolumeX size={12} />
+                              ) : (
+                                <Volume2 size={12} />
+                              )}
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              setFlashcardTopic(classInfo?.name || "this topic");
+                              setFlashcardOpen(true);
+                            }}
+                            title="Generate flashcards"
+                          >
+                            <Layers size={12} />
+                          </Button>
+                        </div>
                       </div>
                     )}
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">
@@ -526,6 +580,18 @@ const ClassWorkspace = () => {
                       {action.label}
                     </Button>
                   ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      setFlashcardTopic(classInfo?.name || "this topic");
+                      setFlashcardOpen(true);
+                    }}
+                  >
+                    <Layers size={14} />
+                    Flashcards
+                  </Button>
                 </div>
               </div>
             </div>
@@ -572,6 +638,14 @@ const ClassWorkspace = () => {
             />
           )}
         </AnimatePresence>
+
+        {/* Flashcard Panel */}
+        <FlashcardPanel
+          isOpen={flashcardOpen}
+          onClose={() => setFlashcardOpen(false)}
+          topic={flashcardTopic}
+          materialName={selectedMaterial?.name}
+        />
       </div>
     </div>
   );
