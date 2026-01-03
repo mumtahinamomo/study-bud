@@ -51,21 +51,7 @@ StudyBud is designed for:
 
 ## 🛠 How Can I Edit This Project?
 
-You have multiple ways to work on StudyBud:
-
----
-
-### Option 1: Use Lovable (Recommended)
-
-1. Open the StudyBud project in Lovable
-2. Prompt changes directly in Lovable
-3. All changes are **automatically committed** to this GitHub repository
-
-This is the fastest way to iterate on product behavior and UI.
-
----
-
-### Option 2: Use Your Own IDE (Local Development)
+Use Your Own IDE (Local Development)
 
 #### Requirements
 - Node.js (recommended via `nvm`)
