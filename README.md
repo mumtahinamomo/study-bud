@@ -53,18 +53,19 @@ StudyBud is designed for:
 
 Use Your Own IDE (Local Development)
 
-#### Requirements
+
+### Requirements
 - Node.js (recommended via `nvm`)
 - npm
 
-#### Steps
+### Setup Instructions
 
 ```bash
 # Step 1: Clone the repository
-git clone <YOUR_GIT_URL>
+git clone https://github.com/mumtahinamomo/study-bud.git
 
 # Step 2: Navigate to the project directory
-cd <YOUR_PROJECT_NAME>
+cd study-bud
 
 # Step 3: Install dependencies
 npm install
